@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+src/hi_galaxy_kinematics.egg-info/PKG-INFO
+src/hi_galaxy_kinematics.egg-info/SOURCES.txt
+src/hi_galaxy_kinematics.egg-info/dependency_links.txt
+src/hi_galaxy_kinematics.egg-info/requires.txt
+src/hi_galaxy_kinematics.egg-info/top_level.txt
+src/hi_kinematics/__init__.py
+src/hi_kinematics/cube.py
+src/hi_kinematics/geometry.py
+src/hi_kinematics/kinematics.py
+tests/test_kinematics.py

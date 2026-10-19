@@ -1,0 +1,91 @@
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from astropy.io import fits
+
+from hi_kinematics import pipeline
+
+from hi_kinematics.cube import (
+    load_fits_cube,
+    spectral_axis_kms,
+    moment_maps,
+)
+
+pipeline.prepare_cube()
+cube, header = load_fits_cube(pipeline.ACTIVE_CUBE_PATH)
+
+print("\nCube loaded successfully.")
+print("Array shape:", cube.shape)
+print("Data type:", cube.dtype)
+print("Finite values:", np.isfinite(cube).sum())
+
+# 4. Convert the spectral axis to km/s
+try:
+    velocity = spectral_axis_kms(
+        header,
+        cube.shape[0],
+    )
+
+except ValueError as exc:
+    print("\nCould not construct the velocity axis.")
+    print("Reason:", exc)
+    print(
+        "\nCheck the FITS spectral WCS, rest frequency, "
+        "and Doppler convention before continuing."
+    )
+    raise
+
+print("\nVelocity axis:")
+print("Minimum:", np.nanmin(velocity), "km/s")
+print("Maximum:", np.nanmax(velocity), "km/s")
+print("Number of channels:", len(velocity))
+
+# 5. Calculate moment-0 and moment-1 maps
+moment0, moment1 = moment_maps(cube, velocity)
+
+print("\nMoment maps calculated.")
+print("Moment-0 shape:", moment0.shape)
+print("Moment-1 shape:", moment1.shape)
+
+# 6. Save the results
+output_dir = Path("results")
+output_dir.mkdir(exist_ok=True)
+
+np.save(output_dir / "moment0.npy", moment0)
+np.save(output_dir / "moment1.npy", moment1)
+
+# 7. Plot moment maps
+fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+
+im0 = axes[0].imshow(
+    moment0,
+    origin="lower",
+    cmap="inferno",
+)
+axes[0].set_title("Moment 0 - Integrated Intensity")
+axes[0].set_xlabel("X (pixels)")
+axes[0].set_ylabel("Y (pixels)")
+fig.colorbar(im0, ax=axes[0], label="Intensity × km/s")
+
+im1 = axes[1].imshow(
+    moment1,
+    origin="lower",
+    cmap="RdBu_r",
+)
+axes[1].set_title("Moment 1 - Intensity-Weighted Velocity")
+axes[1].set_xlabel("X (pixels)")
+axes[1].set_ylabel("Y (pixels)")
+fig.colorbar(im1, ax=axes[1], label="km/s")
+
+fig.tight_layout()
+fig.savefig(
+    output_dir / "moment_maps.png",
+    dpi=200,
+)
+
+plt.show()
+
+print("\nResults saved in:", output_dir.resolve())
+print("FITS cube test completed.")

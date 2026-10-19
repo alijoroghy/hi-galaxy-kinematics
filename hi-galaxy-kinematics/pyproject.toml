@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hi-galaxy-kinematics"
+version = "0.1.0"
+description = "Exploratory H I cube and tilted-ring kinematics tools"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10", "astropy>=5.3", "scikit-image>=0.21", "matplotlib>=3.7"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

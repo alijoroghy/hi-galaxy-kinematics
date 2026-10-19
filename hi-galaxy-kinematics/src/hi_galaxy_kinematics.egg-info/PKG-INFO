@@ -1,0 +1,90 @@
+Metadata-Version: 2.4
+Name: hi-galaxy-kinematics
+Version: 0.1.0
+Summary: Exploratory H I cube and tilted-ring kinematics tools
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.24
+Requires-Dist: scipy>=1.10
+Requires-Dist: astropy>=5.3
+Requires-Dist: scikit-image>=0.21
+Requires-Dist: matplotlib>=3.7
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+
+# H I Galaxy Kinematics
+
+An exploratory Python project for inspecting spectral-line data cubes and fitting a first-pass rotation curve with a geometry-fixed tilted-ring model. The code is being refactored from a research notebook that used the THINGS `NGC_2403_RO_CUBE_THINGS.fits` cube.
+
+> **Scientific status:** this is a reproducible starting point, not a validated replacement for TiRiFiC or a full 3-D tilted-ring fit. In particular, the notebook's original `deprojected_cube` routine selected ring geometry using the spectral-channel index and applied 2-D image transforms independently to each channel. That operation is not a physically complete deprojection of a spectral cube and is intentionally not carried forward as a scientific result.
+
+## What is included
+
+- FITS cube loading and explicit spectral-axis handling for velocity-coordinate WCS axes.
+- Basic positive-intensity moment-0 and moment-1 maps.
+- Flux-weighted center estimation and a threshold-based ellipse fit.
+- A projected circular-rotation model and robust ring-by-ring fit for rotation speed and systemic velocity, with geometry held fixed.
+- A synthetic example with known parameters and automated tests.
+
+## Install
+
+Python 3.10 or newer is recommended.
+
+```bash
+python -m venv .venv
+# Windows: .venv\\Scripts\\activate
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -e ".[dev]"
+```
+
+## Run the synthetic example
+
+```bash
+python examples/synthetic_rotation_curve.py
+pytest
+```
+
+The synthetic example requires no astronomical data files.
+
+## Use a FITS cube
+
+```python
+from hi_kinematics.cube import load_fits_cube, spectral_axis_kms, moment_maps
+
+cube, header = load_fits_cube("path/to/cube.fits")
+velocity = spectral_axis_kms(header, cube.shape[0])
+moment0, moment1 = moment_maps(cube, velocity)
+```
+
+Check the cube axis order, beam, units, spectral convention, masking, and calibration for the specific FITS product before interpreting physical values. Frequency-axis cubes currently raise an explicit error rather than silently treating frequency as velocity.
+
+## Fit a first-pass rotation curve
+
+```python
+import numpy as np
+from hi_kinematics.kinematics import fit_rotation_curve
+
+ring_edges = np.arange(10, 250, 10)  # pixel radii; choose based on data/resolution
+rings = fit_rotation_curve(
+    velocity_map=moment1,
+    center_xy=(x0, y0),
+    pa_deg=pa_deg,
+    inclination_deg=inclination_deg,
+    ring_edges=ring_edges,
+)
+```
+
+The current PA convention is counter-clockwise from the image +x axis. Confirm the convention used by your data and compare it with a trusted reference before scientific interpretation. Geometry is fixed in this first-pass fit; this is deliberate because simultaneously fitting center, PA, inclination, rotation speed, and systemic velocity ring-by-ring can be degenerate.
+
+## Limitations and next validation steps
+
+1. Verify WCS axis ordering and velocity units against the original FITS header and data documentation.
+2. Validate moment maps against an independently generated reference; real H I moment maps often need a noise-aware mask, not only positive-value clipping.
+3. Validate PA and inclination conventions against a known model or trusted software.
+4. Add uncertainty estimates using bootstrap/noise realizations or a model appropriate to correlated spatial pixels.
+5. Compare rotation curves with TiRiFiC or another trusted implementation on the same cube.
+6. Only implement 3-D cube deprojection after defining the physical coordinate mapping, interpolation, flux conservation, and spectral-axis behavior.
+
+## Data and attribution
+
+The original notebook refers to a THINGS NGC 2403 FITS cube stored on a local Windows path. That data file is not included here. Follow the data provider's license, citation, and redistribution conditions; do not commit large or restricted FITS files to this repository.
